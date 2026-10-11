@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e24">
+<title>月夜疾行 · 屋顶狂奔</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0a0e24;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  #game { display: block; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  /* ============ 遮罩通用 ============ */
+  .overlay {
+    position: fixed; inset: 0; z-index: 20;
+    display: none;
+    align-items: center; justify-content: center;
+    background: rgba(6,8,20,0.78);
+    backdrop-filter: blur(3px);
+  }
+  .overlay.show { display: flex; }
+
+  /* ============ 登录面板（4399 式：双页签 + 输入框 + 大按钮） ============ */
+  #loginPanel {
+    width: min(340px, 86vw);
+    background: linear-gradient(180deg, #20264a 0%, #141830 100%);
+    border: 2px solid #c9a14c;
+    border-radius: 14px;
+    box-shadow: 0 0 40px rgba(201,161,76,0.35), inset 0 0 30px rgba(0,0,0,0.4);
+    padding: 22px 24px 20px;
+    color: #e8e6f5;
+  }
+  #loginPanel .lp-title {
+    text-align: center;
+    font-family: "Kaiti SC","KaiTi","STKaiti",serif;
+    font-size: 26px; font-weight: bold; color: #f0d48a;
+    letter-spacing: 4px;
+    text-shadow: 0 0 14px rgba(240,212,138,0.5);
+    margin-bottom: 2px;
+  }
+  #loginPanel .lp-sub {
+    text-align: center; font-size: 12px; color: rgba(232,230,245,0.55);
+    margin-bottom: 16px; letter-spacing: 2px;
+  }
+  .lp-tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid rgba(201,161,76,0.4); }
+  .lp-tab {
+    flex: 1; text-align: center; padding: 9px 0; cursor: pointer;
+    font-size: 15px; color: rgba(232,230,245,0.55);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all .15s;
+  }
+  .lp-tab.on { color: #f0d48a; border-bottom-color: #e34234; font-weight: bold; }
+  .lp-field { margin-bottom: 12px; }
+  .lp-field input {
+    width: 100%; box-sizing: border-box;
+    height: 40px; border-radius: 8px;
+    border: 1.5px solid rgba(201,161,76,0.5);
+    background: rgba(10,12,30,0.8);
+    color: #f2f0ff; font-size: 15px; padding: 0 12px;
+    outline: none;
+  }
+  .lp-field input:focus { border-color: #f0d48a; box-shadow: 0 0 10px rgba(240,212,138,0.3); }
+  .lp-btn {
+    width: 100%; height: 44px; margin-top: 4px;
+    border: none; border-radius: 22px; cursor: pointer;
+    background: linear-gradient(180deg, #e85545 0%, #c0392b 100%);
+    color: #fff7e0; font-size: 17px; font-weight: bold; letter-spacing: 6px;
+    box-shadow: 0 4px 0 #7e2018, 0 6px 14px rgba(0,0,0,0.5);
+  }
+  .lp-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #7e2018; }
+  .lp-msg { min-height: 20px; text-align: center; font-size: 13px; margin-top: 10px; color: #ff7a6b; }
+  .lp-tip { text-align: center; font-size: 11px; color: rgba(232,230,245,0.4); margin-top: 8px; }
+
+  /* ============ 图鉴面板 ============ */
+  #galleryPanel {
+    width: min(980px, 96vw); height: min(88vh, 760px);
+    background: linear-gradient(180deg, #1c2140 0%, #11142a 100%);
+    border: 2px solid #c9a14c; border-radius: 14px;
+    box-shadow: 0 0 40px rgba(201,161,76,0.3);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .gp-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(201,161,76,0.35);
+  }
+  .gp-title {
+    font-family: "Kaiti SC","KaiTi","STKaiti",serif;
+    font-size: 22px; font-weight: bold; color: #f0d48a; letter-spacing: 3px;
+  }
+  .gp-count { font-size: 13px; color: rgba(232,230,245,0.7); }
+  .gp-close {
+    margin-left: auto; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1.5px solid rgba(201,161,76,0.6); background: transparent;
+    color: #f0d48a; font-size: 18px; line-height: 1;
+  }
+  .gp-filters {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 10px 18px; border-bottom: 1px solid rgba(201,161,76,0.2);
+  }
+  .gp-f {
+    cursor: pointer; font-size: 13px; padding: 5px 12px; border-radius: 14px;
+    border: 1.5px solid rgba(232,230,245,0.2); color: rgba(232,230,245,0.6);
+    background: transparent;
+  }
+  .gp-f.on { color: #1a1408; font-weight: bold; border-color: transparent; }
+  .gp-f.on[data-rv="0"] { background: #e8e6f5; }
+  .gp-grid {
+    flex: 1; overflow-y: auto; padding: 14px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 12px;
+    align-content: start;
+  }
+  .gp-grid::-webkit-scrollbar { width: 8px; }
+  .gp-grid::-webkit-scrollbar-thumb { background: rgba(201,161,76,0.5); border-radius: 4px; }
+  .relic-card {
+    border-radius: 10px; padding: 8px 6px 7px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    position: relative;
+    border: 1.5px solid rgba(255,255,255,0.18);
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.35);
+  }
+  .relic-card.locked { filter: saturate(0.4) brightness(0.55); }
+  .relic-card canvas { width: 60px; height: 60px; }
+  .relic-card .rc-name {
+    font-size: 11px; color: #f4f1e4; text-align: center;
+    width: 100%; line-height: 1.25;
+    max-height: 2.8em; overflow: hidden;
+  }
+  .relic-card .rc-dy { font-size: 10px; color: rgba(255,255,255,0.65); }
+  .relic-card .rc-tag {
+    position: absolute; top: 4px; left: 5px;
+    font-size: 10px; padding: 1px 6px; border-radius: 8px;
+    color: #fff; font-weight: bold;
+  }
+  .relic-card.locked .rc-name { color: rgba(255,255,255,0.55); }
+  .gp-pager {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding: 10px 0 12px; border-top: 1px solid rgba(201,161,76,0.2);
+    font-size: 13px; color: rgba(232,230,245,0.75);
+  }
+  .gp-pager button {
+    cursor: pointer; background: rgba(201,161,76,0.18);
+    border: 1px solid rgba(201,161,76,0.6); color: #f0d48a;
+    border-radius: 6px; padding: 4px 14px; font-size: 13px;
+  }
+  .gp-pager button:disabled { opacity: 0.35; cursor: default; }
+
+  /* ============ 手机竖屏提示（仅触屏设备竖屏时显示） ============ */
+  #rotateHint {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    align-items: center; justify-content: center; flex-direction: column; gap: 18px;
+    background: #0a0e24; color: #f0d48a;
+    font-size: 18px; letter-spacing: 3px;
+  }
+  #rotateHint .ph {
+    width: 46px; height: 78px; border: 3px solid #c9a14c; border-radius: 10px;
+    animation: phRot 1.6s ease-in-out infinite;
+  }
+  @keyframes phRot {
+    0%, 25% { transform: rotate(0deg); }
+    55%, 100% { transform: rotate(-90deg); }
+  }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #rotateHint { display: flex; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ============ 手机竖屏提示 ============ -->
+<div id="rotateHint">
+  <div class="ph"></div>
+  <div>请将手机横过来游玩</div>
+</div>
+
+<!-- ============ 登录 / 注册 ============ -->
+<div class="overlay show" id="loginOverlay">
+  <div id="loginPanel">
+    <div class="lp-title">月夜疾行</div>
+    <div class="lp-sub">故 宫 夜 行 · 展 品 追 缉</div>
+    <div class="lp-tabs">
+      <div class="lp-tab on" data-mode="login">登 录</div>
+      <div class="lp-tab" data-mode="register">注 册</div>
+    </div>
+    <div class="lp-field">
+      <input id="lpName" type="text" maxlength="12" placeholder="用户名（2~12 位）" autocomplete="username">
+    </div>
+    <div class="lp-field">
+      <input id="lpPw" type="password" maxlength="20" placeholder="密码（至少 4 位）" autocomplete="current-password">
+    </div>
+    <div class="lp-field" id="lpPw2Wrap" style="display:none">
+      <input id="lpPw2" type="password" maxlength="20" placeholder="再次输入密码" autocomplete="new-password">
+    </div>
+    <button class="lp-btn" id="lpBtn">登 录</button>
+    <div class="lp-msg" id="lpMsg"></div>
+    <div class="lp-tip">账号保存在本机浏览器，请勿清理浏览器数据</div>
+  </div>
+</div>
+
+<!-- ============ 展品图鉴 ============ -->
+<div class="overlay" id="galleryOverlay">
+  <div id="galleryPanel">
+    <div class="gp-head">
+      <div class="gp-title">展品图鉴</div>
+      <div class="gp-count" id="gpCount"></div>
+      <button class="gp-close" id="gpClose">✕</button>
+    </div>
+    <div class="gp-filters" id="gpFilters"></div>
+    <div class="gp-grid" id="gpGrid"></div>
+    <div class="gp-pager">
+      <button id="gpPrev">上一页</button>
+      <span id="gpPage"></span>
+      <button id="gpNext">下一页</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/artifacts.js"></script>
+<script src="js/accounts.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
